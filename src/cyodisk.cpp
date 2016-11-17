@@ -35,44 +35,47 @@ SOFTWARE.
 
 namespace
 {
-    enum Units { BYTES, KILOBYTES, MEGABYTES, GIGABYTES };
+    enum class Units
+    {
+        bytes = 0,
+        kilobytes,
+        kibibytes,
+        megabytes,
+        mebibytes,
+        gigabytes,
+        gibibytes
+    };
 
     class Output
     {
     public:
         Output( Units units, int depth, bool noProgress )
-            : depth_( depth ), noProgress_( noProgress ), folderSize_( 0 ), totalSize_( 0 )
+            : depth_( depth ), noProgress_( noProgress )
         {
-            switch (units)
+            struct Data
             {
-            case BYTES:
-                div_ = 1;
-                add_ = 0;
-                units_ = nullptr;
-                width_ = 15;
-                break;
-                
-            case KILOBYTES:
-                div_ = 1024;
-                add_ = (div_ / 2);
-                units_ = L" KB";
-                width_ = 14;
-                break;
-                
-            case MEGABYTES:
-                div_ = (1024 * 1024);
-                add_ = (div_ / 2);
-                units_ = L" MB";
-                width_ = 10;
-                break;
-                
-            case GIGABYTES:
-                div_ = (1024 * 1024 * 1024);
-                add_ = (div_ / 2);
-                units_ = L" GB";
-                width_ = 6;
-                break;
-            }
+                __int64 div;
+                const wchar_t* units;
+                int width;
+            };
+            const Data data[] =
+            {
+                { 1, nullptr, 15 }, //bytes
+                { 1000, L" KB", 14 }, //kilobytes
+                { 1024, L" KiB", 15 }, //kibibytes
+                { 1000 * 1000, L" MB", 10 }, //megabytes
+                { 1024 * 1024, L" MiB", 11 }, //mebibytes
+                { 1000 * 1000 * 1000, L" GB", 6 }, //gigabytes
+                { 1024 * 1024 * 1024, L" GiB", 7 } //gibibytes
+            };
+            assert(Units::bytes <= units && units <= Units::gibibytes);
+
+            const Data& ref = data[(int)units];
+
+            div_ = ref.div;
+            add_ = (div_ / 2);
+            units_ = ref.units;
+            width_ = ref.width;
 
             ResetProgress();
         }
@@ -132,10 +135,10 @@ namespace
         };
         typedef std::map<std::wstring, PathData> Folders;
 
-        int depth_;
-        bool noProgress_;
-        __int64 folderSize_;
-        __int64 totalSize_;
+        const int depth_;
+        const bool noProgress_;
+        __int64 folderSize_ = 0;
+        __int64 totalSize_ = 0;
         __int64 add_;
         __int64 div_;
         const wchar_t* units_;
@@ -199,7 +202,9 @@ namespace
                     progress_ = true;
             }
 
-            if (!noProgress_ && progress_ && (now - lastProgress_ >= 500))
+            if (!noProgress_
+                && progress_
+                && (now - lastProgress_ >= 500))
             {
                 const wchar_t* const c_progress = L"-\\|/";
                 static const int c_maxProgress = (int)std::wcslen( c_progress );
@@ -249,7 +254,7 @@ namespace
                 }
 
                 if (units_ != nullptr)
-                    wcscat( str, units_ );
+                    std::wcscat( str, units_ );
             }
             else
             {
@@ -265,7 +270,7 @@ namespace
             wchar_t* p = ret;
             for (int i = len; i < width_; ++i)
                 *p++ = ' ';
-            wcscpy( p, str );
+            std::wcscpy( p, str );
             return ret;
         }
     };
@@ -341,25 +346,34 @@ namespace
 
 int wmain( int argc, wchar_t* argv[] )
 {
-    Units units = MEGABYTES;
+    Units units = Units::mebibytes;
     bool noProgress = false;
     int depth = 1;
     bool noLinks = false;
     for (int i = 1; i < argc; ++i)
     {
-        if (wcscmp( argv[ i ], L"/?" ) == 0 || wcscmp( argv[ i ], L"-?" ) == 0 || _wcsicmp( argv[ i ], L"--help" ) == 0)
+        if (wcscmp( argv[ i ], L"/?" ) == 0
+            || wcscmp( argv[ i ], L"-?" ) == 0
+            || _wcsicmp( argv[ i ], L"--help" ) == 0)
         {
-            std::wcout << L"Usage:\n\n  CYODISK [/BYTES | /KB | /MB | /GB] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]" << std::endl;
+            std::wcout << L"Usage:\n\n  CYODISK [/units] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]\n" \
+                L"\nwhere units is one of: BYTES, KB, KiB, MB, MiB, GB, or GiB (default is MiB)" << std::endl;
             return -1;
         }
         else if (_wcsicmp( argv[ i ], L"/bytes" ) == 0)
-            units = BYTES;
+            units = Units::bytes;
         else if (_wcsicmp( argv[ i ], L"/kb" ) == 0)
-            units = KILOBYTES;
+            units = Units::kilobytes;
+        else if (_wcsicmp( argv[ i ], L"/kib" ) == 0)
+            units = Units::kibibytes;
         else if (_wcsicmp( argv[ i ], L"/mb" ) == 0)
-            units = MEGABYTES;
+            units = Units::megabytes;
+        else if (_wcsicmp( argv[ i ], L"/mib" ) == 0)
+            units = Units::mebibytes;
         else if (_wcsicmp( argv[ i ], L"/gb" ) == 0)
-            units = GIGABYTES;
+            units = Units::gigabytes;
+        else if (_wcsicmp( argv[ i ], L"/gib" ) == 0)
+            units = Units::gibibytes;
         else if(_wcsicmp( argv[ i ], L"/noprogress" ) == 0)
             noProgress = true;
         else if (_wcsicmp( argv[ i ], L"/nolinks" ) == 0)
