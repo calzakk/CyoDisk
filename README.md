@@ -27,7 +27,7 @@ For example:
 
 will output sizes in gibibytes at a depth of 2 (subfolders plus their subfolders).
 
-(If you don't know what a gibibyte (GiB) is, see Wikipedia: https://en.wikipedia.org/wiki/Gibibyte.)
+(If you don't know what a gibibyte (GiB) is, see Wikipedia: https://en.wikipedia.org/wiki/Gibibyte)
 
 ## Platforms
 
