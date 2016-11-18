@@ -43,7 +43,9 @@ namespace
         megabytes,
         mebibytes,
         gigabytes,
-        gibibytes
+        gibibytes,
+        terabytes,
+        tebibytes
     };
 
     class Output
@@ -60,13 +62,15 @@ namespace
             };
             const Data data[] =
             {
-                { 1, nullptr, 15 }, //bytes
-                { 1000, L" KB", 14 }, //kilobytes
-                { 1024, L" KiB", 15 }, //kibibytes
-                { 1000 * 1000, L" MB", 10 }, //megabytes
-                { 1024 * 1024, L" MiB", 11 }, //mebibytes
-                { 1000 * 1000 * 1000, L" GB", 6 }, //gigabytes
-                { 1024 * 1024 * 1024, L" GiB", 7 } //gibibytes
+                { 1LL, nullptr, 19 }, //bytes
+                { 1000LL, L" KB", 18 }, //kilobytes
+                { 1024LL, L" KiB", 19 }, //kibibytes
+                { 1000LL * 1000, L" MB", 14 }, //megabytes
+                { 1024LL * 1024, L" MiB", 15 }, //mebibytes
+                { 1000LL * 1000 * 1000, L" GB", 10 }, //gigabytes
+                { 1024LL * 1024 * 1024, L" GiB", 11 }, //gibibytes
+                { 1000LL * 1000 * 1000 * 1000, L" TB", 6 }, //terabytes
+                { 1024LL * 1024 * 1024 * 1024, L" TiB", 7 } //tebibytes
             };
             assert(Units::bytes <= units && units <= Units::gibibytes);
 
@@ -357,7 +361,7 @@ int wmain( int argc, wchar_t* argv[] )
             || _wcsicmp( argv[ i ], L"--help" ) == 0)
         {
             std::wcout << L"Usage:\n\n  CYODISK [/units] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]\n" \
-                L"\nwhere units is one of: BYTES, KB, KiB, MB, MiB, GB, or GiB (default is MiB)" << std::endl;
+                L"\nwhere units is one of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB" << std::endl;
             return -1;
         }
         else if (_wcsicmp( argv[ i ], L"/bytes" ) == 0)
@@ -374,6 +378,10 @@ int wmain( int argc, wchar_t* argv[] )
             units = Units::gigabytes;
         else if (_wcsicmp( argv[ i ], L"/gib" ) == 0)
             units = Units::gibibytes;
+        else if (_wcsicmp( argv[ i ], L"/tb" ) == 0)
+            units = Units::terabytes;
+        else if (_wcsicmp( argv[ i ], L"/tib" ) == 0)
+            units = Units::tebibytes;
         else if(_wcsicmp( argv[ i ], L"/noprogress" ) == 0)
             noProgress = true;
         else if (_wcsicmp( argv[ i ], L"/nolinks" ) == 0)

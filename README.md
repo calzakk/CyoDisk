@@ -8,7 +8,7 @@ Build the solution (release build), copy the resultant CyoDisk.exe to a folder, 
 
     CYODISK [/units] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]
 
-where units is one of: BYTES, KB, KiB, MB, MiB, GB, or GiB (default is MiB).
+where units is one of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, or TiB.
 
 Options:
 
@@ -26,6 +26,8 @@ For example:
     cyodisk /gib /depth 2
 
 will output sizes in gibibytes at a depth of 2 (subfolders plus their subfolders).
+
+(If you don't know what a gibibyte (GiB) is, see Wikipedia: https://en.wikipedia.org/wiki/Gibibyte.)
 
 ## Platforms
 
