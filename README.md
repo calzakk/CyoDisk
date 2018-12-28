@@ -31,13 +31,13 @@ will output sizes in gibibytes at a depth of 2 (subfolders plus their subfolders
 
 ## Platforms
 
-CyoDisk is currently a Windows-only application, and is built using Visual Studio 2015.
+CyoDisk is currently a Windows-only application, and is built using Visual Studio 2017.
 
 ## License
 
 ### The MIT License (MIT)
 
-Copyright (c) 2014-2016 Graham Bull
+Copyright (c) 2014-2018 Graham Bull
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

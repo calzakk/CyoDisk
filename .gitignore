@@ -1,5 +1,7 @@
 *.db
 *.sdf
 *.suo
+*.user
+*.vs
 Debug
 Release
