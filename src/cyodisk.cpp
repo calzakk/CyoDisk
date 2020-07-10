@@ -3,7 +3,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2014-2018 Graham Bull
+Copyright (c) 2014-2020 Graham Bull
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -373,11 +373,14 @@ int wmain( int argc, wchar_t* argv[] )
             std::wcout << L"CYODISK [options...]\n" \
                 "\n" \
                 "Options:\n" \
-                "  /units        One of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB\n" \
-                "  /NOPROGRESS   Don't show progress spinner\n" \
-                "  /NOLINKS      Don't follow links\n" \
-                "  /NOZERO       Don't display folders with a size of 0 in the selected units\n" \
-                "  /DEPTH depth  Maximum depth of subfolders to display (default=1)" << std::endl;
+                "  /units        One of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB.\n" \
+                "  /NOPROGRESS   Don't output any progress info; useful when redirecting the\n" \
+                "                output to a file.\n" \
+                "  /NOLINKS      Don't follow symbolic links or directory junctions.\n" \
+                "  /NOZERO       Don't display folders with a size of 0 in the selected units.\n" \
+                "  /DEPTH depth  0: don't list subfolders;\n" \
+                "                1: list subfolders (default);\n" \
+                "                2: list subfolders and their subfolders; etc." << std::endl;
             return -1;
         }
         else if (_wcsicmp( argv[ i ], L"/bytes" ) == 0)

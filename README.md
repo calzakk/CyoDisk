@@ -6,17 +6,21 @@ CyoDisk is a simple command-line application (currently Windows only) that displ
 
 Build the solution (release build), copy the resultant CyoDisk.exe to a folder, and ensure that the folder is in the path. CyoDisk can then be run using:
 
-    CYODISK [/units] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]
-
-where units is one of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, or TiB.
+    CYODISK [options...]
 
 Options:
+
+    /units
+    One of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, or TiB.
 
     /NOPROGRESS
     Don't output any progress info; useful when redirecting the output to a file.
 
     /NOLINKS
     Don't follow symbolic links or directory junctions.
+
+    /NOZERO
+    Don't display folders with a size of 0 in the selected units
 
     /DEPTH depth
     0: don't list subfolders; 1: list subfolders (default); 2: list subfolders and their subfolders; etc.
@@ -31,13 +35,13 @@ will output sizes in gibibytes at a depth of 2 (subfolders plus their subfolders
 
 ## Platforms
 
-CyoDisk is currently a Windows-only application, and is built using Visual Studio 2017.
+CyoDisk is currently a Windows-only application, and is built using Visual Studio 2019.
 
 ## License
 
 ### The MIT License (MIT)
 
-Copyright (c) 2014-2018 Graham Bull
+Copyright (c) 2014-2020 Graham Bull
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
