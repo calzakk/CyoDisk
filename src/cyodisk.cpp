@@ -51,8 +51,10 @@ namespace
     class Output
     {
     public:
-        Output( Units units, int depth, bool noProgress )
-            : depth_( depth ), noProgress_( noProgress )
+        Output( Units units, int depth, bool noZero, bool noProgress )
+            : depth_( depth ),
+            noZero_( noZero ),
+            noProgress_( noProgress )
         {
             struct Data
             {
@@ -72,9 +74,9 @@ namespace
                 { 1000LL * 1000 * 1000 * 1000, L" TB", 6 }, //terabytes
                 { 1024LL * 1024 * 1024 * 1024, L" TiB", 7 } //tebibytes
             };
-            assert(Units::bytes <= units && units <= Units::gibibytes);
+            assert(Units::bytes <= units && units <= Units::tebibytes);
 
-            const Data& ref = data[(int)units];
+            auto& ref = data[(int)units];
 
             div_ = ref.div;
             add_ = (div_ / 2);
@@ -121,12 +123,15 @@ namespace
             Dump();
 
             int length;
-            std::wstring niceSize = NiceSize( folderSize_, &length );
-            if (!noProgress_)
-                std::wcout << L'\r';
-            std::wcout << niceSize << L"  ." << std::endl;
+            std::wstring niceSize = NiceSize( folderSize_, &length, noZero_ );
+            if (!niceSize.empty())
+            {
+                if (!noProgress_)
+                    std::wcout << L'\r';
+                std::wcout << niceSize << L"  ." << std::endl;
+            }
             std::wcout << std::wstring( width_, L'-' ) << std::endl;
-            std::wcout << NiceSize( totalSize_, nullptr ) << std::endl;
+            std::wcout << NiceSize( totalSize_, nullptr, false ) << std::endl;
         }
 
     private:
@@ -140,6 +145,7 @@ namespace
         typedef std::map<std::wstring, PathData> Folders;
 
         const int depth_;
+        const bool noZero_;
         const bool noProgress_;
         __int64 folderSize_ = 0;
         __int64 totalSize_ = 0;
@@ -160,7 +166,9 @@ namespace
             for (Folders::const_iterator i = folders_.begin(); i != folders_.end(); ++i)
             {
                 int length;
-                std::wstring niceSize = NiceSize( i->second.size, &length );
+                std::wstring niceSize = NiceSize( i->second.size, &length, noZero_ );
+                if (niceSize.empty())
+                    continue;
                 if (!noProgress_)
                     std::wcout << L'\r';
                 std::wcout << niceSize << L"  ";
@@ -224,13 +232,16 @@ namespace
             }
         }
 
-        std::wstring NiceSize( __int64 size, int* length ) const
+        std::wstring NiceSize( __int64 size, int* length, bool noZero ) const
         {
             wchar_t str[ 100 ];
 
             if (size >= 0)
             {
                 size = ((size + add_) / div_);
+                if (size == 0 && noZero)
+                    return L"";
+
                 _i64tow( size, str, 10 );
 
                 int offset = 0;
@@ -326,8 +337,7 @@ namespace
 
                 __int64 folderSize = RecurseFolder( pathname.c_str(), subpathname.c_str(), noLinks, level + 1, output );
                 output.AddFolder( subpathname, fd.cFileName, isLink, folderSize, level );
-                if (folderSize >= 1)
-                    totalSize += folderSize;
+                totalSize += folderSize;
             }
             else
             {
@@ -345,7 +355,6 @@ namespace
 
         return totalSize;
     }
-
 }
 
 int wmain( int argc, wchar_t* argv[] )
@@ -354,14 +363,21 @@ int wmain( int argc, wchar_t* argv[] )
     bool noProgress = false;
     int depth = 1;
     bool noLinks = false;
+    bool noZero = false;
     for (int i = 1; i < argc; ++i)
     {
         if (wcscmp( argv[ i ], L"/?" ) == 0
             || wcscmp( argv[ i ], L"-?" ) == 0
             || _wcsicmp( argv[ i ], L"--help" ) == 0)
         {
-            std::wcout << L"Usage:\n\n  CYODISK [/units] [/NOPROGRESS] [/NOLINKS] [/DEPTH depth]\n" \
-                L"\nwhere units is one of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB" << std::endl;
+            std::wcout << L"CYODISK [options...]\n" \
+                "\n" \
+                "Options:\n" \
+                "  /units        One of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB\n" \
+                "  /NOPROGRESS   Don't show progress spinner\n" \
+                "  /NOLINKS      Don't follow links\n" \
+                "  /NOZERO       Don't display folders with a size of 0 in the selected units\n" \
+                "  /DEPTH depth  Maximum depth of subfolders to display (default=1)" << std::endl;
             return -1;
         }
         else if (_wcsicmp( argv[ i ], L"/bytes" ) == 0)
@@ -384,8 +400,10 @@ int wmain( int argc, wchar_t* argv[] )
             units = Units::tebibytes;
         else if(_wcsicmp( argv[ i ], L"/noprogress" ) == 0)
             noProgress = true;
-        else if (_wcsicmp( argv[ i ], L"/nolinks" ) == 0)
+        else if (_wcsicmp(argv[i], L"/nolinks") == 0)
             noLinks = true;
+        else if (_wcsicmp(argv[i], L"/nozero") == 0)
+            noZero = true;
         else if (_wcsicmp( argv[ i ], L"/depth" ) == 0 && i + 1 < argc)
         {
             if (_wcsicmp( argv[ ++i ], L"max" ) == 0)
@@ -403,7 +421,7 @@ int wmain( int argc, wchar_t* argv[] )
     wchar_t szPath[ MAX_PATH ];
     GetCurrentDirectoryW( MAX_PATH, szPath );
 
-    Output output( units, depth, noProgress );
+    Output output( units, depth, noZero, noProgress );
 
     RecurseFolder( szPath, L"", noLinks, 0, output );
 
