@@ -51,9 +51,10 @@ namespace
     class Output
     {
     public:
-        Output( Units units, int depth, bool noZero, bool noProgress )
+        Output( Units units, int depth, bool noZero, bool noFree, bool noProgress )
             : depth_( depth ),
             noZero_( noZero ),
+            noFree_( noFree ),
             noProgress_( noProgress )
         {
             struct Data
@@ -132,6 +133,13 @@ namespace
             }
             std::wcout << std::wstring( width_, L'-' ) << std::endl;
             std::wcout << NiceSize( totalSize_, nullptr, false ) << std::endl;
+
+            if (!noFree_)
+            {
+                ULARGE_INTEGER totalFreeSpace;
+                if (::GetDiskFreeSpaceExW(NULL, NULL, NULL, &totalFreeSpace))
+                    std::wcout << NiceSize(totalFreeSpace.QuadPart, nullptr, false) << L" free" << std::endl;
+            }
         }
 
     private:
@@ -146,6 +154,7 @@ namespace
 
         const int depth_;
         const bool noZero_;
+        const bool noFree_;
         const bool noProgress_;
         __int64 folderSize_ = 0;
         __int64 totalSize_ = 0;
@@ -364,6 +373,7 @@ int wmain( int argc, wchar_t* argv[] )
     int depth = 1;
     bool noLinks = false;
     bool noZero = false;
+    bool noFree = false;
     for (int i = 1; i < argc; ++i)
     {
         if (wcscmp( argv[ i ], L"/?" ) == 0
@@ -378,6 +388,7 @@ int wmain( int argc, wchar_t* argv[] )
                 "                output to a file.\n" \
                 "  /NOLINKS      Don't follow symbolic links or directory junctions.\n" \
                 "  /NOZERO       Don't display folders with a size of 0 in the selected units.\n" \
+                "  /NOFREE       Don't display amount of free disk space.\n" \
                 "  /DEPTH depth  0: don't list subfolders;\n" \
                 "                1: list subfolders (default);\n" \
                 "                2: list subfolders and their subfolders; etc." << std::endl;
@@ -407,6 +418,8 @@ int wmain( int argc, wchar_t* argv[] )
             noLinks = true;
         else if (_wcsicmp(argv[i], L"/nozero") == 0)
             noZero = true;
+        else if (_wcsicmp(argv[i], L"/nofree") == 0)
+            noFree = true;
         else if (_wcsicmp( argv[ i ], L"/depth" ) == 0 && i + 1 < argc)
         {
             if (_wcsicmp( argv[ ++i ], L"max" ) == 0)
@@ -424,7 +437,7 @@ int wmain( int argc, wchar_t* argv[] )
     wchar_t szPath[ MAX_PATH ];
     GetCurrentDirectoryW( MAX_PATH, szPath );
 
-    Output output( units, depth, noZero, noProgress );
+    Output output( units, depth, noZero, noFree, noProgress );
 
     RecurseFolder( szPath, L"", noLinks, 0, output );
 

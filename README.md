@@ -20,7 +20,10 @@ Options:
     Don't follow symbolic links or directory junctions.
 
     /NOZERO
-    Don't display folders with a size of 0 in the selected units
+    Don't display folders with a size of 0 in the selected units.
+
+    /NOFREE
+    Don't display amount of free disk space.
 
     /DEPTH depth
     0: don't list subfolders; 1: list subfolders (default); 2: list subfolders and their subfolders; etc.
