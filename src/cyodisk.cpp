@@ -3,7 +3,7 @@
 
 The MIT License (MIT)
 
-Copyright (c) 2014-2020 Graham Bull
+Copyright (c) 2014-2021 Graham Bull
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -299,7 +299,7 @@ namespace
         }
     };
 
-    __int64 RecurseFolder( const wchar_t* path, const wchar_t* subpath, bool noLinks, int level, Output& output )
+    __int64 RecurseFolder( const wchar_t* path, const wchar_t* subpath, bool noLinks, bool noOffline, int level, Output& output )
     {
         __int64 totalSize = 0;
 
@@ -332,19 +332,23 @@ namespace
                 subpathname += L'\\';
             subpathname += fd.cFileName;
 
-            if (fd.dwFileAttributes & (FILE_ATTRIBUTE_DEVICE | FILE_ATTRIBUTE_OFFLINE))
+            if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DEVICE) != 0)
+                continue;
+
+            bool isOffline = (fd.dwFileAttributes & FILE_ATTRIBUTE_OFFLINE) != 0;
+            if (isOffline && noOffline)
                 continue;
 
             bool isLink = (fd.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
             if (isLink && noLinks)
                 continue;
 
-            if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+            if ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
             {
                 if (level == 0)
                     output.CurrentFolder( fd.cFileName, isLink );
 
-                __int64 folderSize = RecurseFolder( pathname.c_str(), subpathname.c_str(), noLinks, level + 1, output );
+                __int64 folderSize = RecurseFolder( pathname.c_str(), subpathname.c_str(), noLinks, noOffline, level + 1, output );
                 output.AddFolder( subpathname, fd.cFileName, isLink, folderSize, level );
                 totalSize += folderSize;
             }
@@ -374,6 +378,7 @@ int wmain( int argc, wchar_t* argv[] )
     bool noLinks = false;
     bool noZero = false;
     bool noFree = false;
+    bool noOffline = true;
     for (int i = 1; i < argc; ++i)
     {
         if (wcscmp( argv[ i ], L"/?" ) == 0
@@ -389,6 +394,7 @@ int wmain( int argc, wchar_t* argv[] )
                 "  /NOLINKS      Don't follow symbolic links or directory junctions.\n" \
                 "  /NOZERO       Don't display folders with a size of 0 in the selected units.\n" \
                 "  /NOFREE       Don't display amount of free disk space.\n" \
+                "  /OFFLINE      Include offline files that aren't stored on the disk.\n" \
                 "  /DEPTH depth  0: don't list subfolders;\n" \
                 "                1: list subfolders (default);\n" \
                 "                2: list subfolders and their subfolders; etc." << std::endl;
@@ -420,6 +426,8 @@ int wmain( int argc, wchar_t* argv[] )
             noZero = true;
         else if (_wcsicmp(argv[i], L"/nofree") == 0)
             noFree = true;
+        else if (_wcsicmp(argv[i], L"/offline") == 0)
+            noOffline = false;
         else if (_wcsicmp( argv[ i ], L"/depth" ) == 0 && i + 1 < argc)
         {
             if (_wcsicmp( argv[ ++i ], L"max" ) == 0)
@@ -439,7 +447,7 @@ int wmain( int argc, wchar_t* argv[] )
 
     Output output( units, depth, noZero, noFree, noProgress );
 
-    RecurseFolder( szPath, L"", noLinks, 0, output );
+    RecurseFolder( szPath, L"", noLinks, noOffline, 0, output );
 
     output.Finish();
 
