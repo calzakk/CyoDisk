@@ -32,6 +32,7 @@ SOFTWARE.
 #include <minmax.h>
 #include <map>
 #include <string>
+#include <vector>
 
 namespace
 {
@@ -60,20 +61,20 @@ namespace
             struct Data
             {
                 __int64 div;
-                const wchar_t* units;
+                const char* units;
                 int width;
             };
             const Data data[] =
             {
                 { 1LL, nullptr, 19 }, //bytes
-                { 1000LL, L" KB", 18 }, //kilobytes
-                { 1024LL, L" KiB", 19 }, //kibibytes
-                { 1000LL * 1000, L" MB", 14 }, //megabytes
-                { 1024LL * 1024, L" MiB", 15 }, //mebibytes
-                { 1000LL * 1000 * 1000, L" GB", 10 }, //gigabytes
-                { 1024LL * 1024 * 1024, L" GiB", 11 }, //gibibytes
-                { 1000LL * 1000 * 1000 * 1000, L" TB", 6 }, //terabytes
-                { 1024LL * 1024 * 1024 * 1024, L" TiB", 7 } //tebibytes
+                { 1000LL, " KB", 18 }, //kilobytes
+                { 1024LL, " KiB", 19 }, //kibibytes
+                { 1000LL * 1000, " MB", 14 }, //megabytes
+                { 1024LL * 1024, " MiB", 15 }, //mebibytes
+                { 1000LL * 1000 * 1000, " GB", 10 }, //gigabytes
+                { 1024LL * 1024 * 1024, " GiB", 11 }, //gibibytes
+                { 1000LL * 1000 * 1000 * 1000, " TB", 6 }, //terabytes
+                { 1024LL * 1024 * 1024 * 1024, " TiB", 7 } //tebibytes
             };
             assert(Units::bytes <= units && units <= Units::tebibytes);
 
@@ -124,21 +125,21 @@ namespace
             Dump();
 
             int length;
-            std::wstring niceSize = NiceSize( folderSize_, &length, noZero_ );
+            std::string niceSize = NiceSize( folderSize_, &length, noZero_ );
             if (!niceSize.empty())
             {
                 if (!noProgress_)
-                    std::wcout << L'\r';
-                std::wcout << niceSize << L"  ." << std::endl;
+                    std::cout << '\r';
+                std::cout << niceSize << "  ." << std::endl;
             }
-            std::wcout << std::wstring( width_, L'-' ) << std::endl;
-            std::wcout << NiceSize( totalSize_, nullptr, false ) << std::endl;
+            std::cout << std::string( width_, '-' ) << std::endl;
+            std::cout << NiceSize( totalSize_, nullptr, false ) << std::endl;
 
             if (!noFree_)
             {
                 ULARGE_INTEGER totalFreeSpace;
                 if (::GetDiskFreeSpaceExW(NULL, NULL, NULL, &totalFreeSpace))
-                    std::wcout << NiceSize(totalFreeSpace.QuadPart, nullptr, false) << L" free" << std::endl;
+                    std::cout << NiceSize(totalFreeSpace.QuadPart, nullptr, false) << " free" << std::endl;
             }
         }
 
@@ -160,13 +161,13 @@ namespace
         __int64 totalSize_ = 0;
         __int64 add_;
         __int64 div_;
-        const wchar_t* units_;
+        const char* units_;
         int width_;
         Folders folders_;
         std::wstring currFolder_;
         bool isLink_;
         bool progress_;
-        DWORD lastProgress_;
+        ULONGLONG lastProgress_;
         int progressPhase_;
 
         void Dump()
@@ -175,20 +176,21 @@ namespace
             for (Folders::const_iterator i = folders_.begin(); i != folders_.end(); ++i)
             {
                 int length;
-                std::wstring niceSize = NiceSize( i->second.size, &length, noZero_ );
+                std::string niceSize = NiceSize( i->second.size, &length, noZero_ );
                 if (niceSize.empty())
                     continue;
+
                 if (!noProgress_)
-                    std::wcout << L'\r';
-                std::wcout << niceSize << L"  ";
+                    std::cout << '\r';
+                std::cout << niceSize << "  ";
                 for (int j = 0; j < i->second.level; ++j)
-                    std::wcout << L"  ";
+                    std::cout << "  ";
                 if (i->second.isLink)
-                    std::wcout << L'[';
-                std::wcout << i->second.name;
+                    std::cout << '[';
+                std::cout << ToMultiByte(i->second.name);
                 if (i->second.isLink)
-                    std::wcout << L']';
-                std::wcout << std::endl;
+                    std::cout << ']';
+                std::cout << std::endl;
                 first = false;
             }
 
@@ -209,7 +211,7 @@ namespace
             if (noProgress_)
                 return;
 
-            DWORD now = ::GetTickCount();
+            ULONGLONG now = ::GetTickCount64();
 
             if (lastProgress_ == 0)
             {
@@ -227,31 +229,39 @@ namespace
                 && progress_
                 && (now - lastProgress_ >= 500))
             {
-                const wchar_t* const c_progress = L"-\\|/";
-                static const int c_maxProgress = (int)std::wcslen( c_progress );
-                std::wcout << L'\r' << c_progress[ progressPhase_ ] << L' ';
+                const char* const c_progress = "-\\|/";
+                static const int c_maxProgress = (int)std::strlen( c_progress );
+                std::cout << '\r' << c_progress[ progressPhase_ ] << ' ';
                 if (isLink_)
-                    std::wcout << L'[';
-                std::wcout << currFolder_;
+                    std::cout << '[';
+                std::cout << ToMultiByte(currFolder_);
                 if (isLink_)
-                    std::wcout << L']';
-                std::wcout << std::flush;
+                    std::cout << ']';
+                std::cout << std::flush;
                 progressPhase_ = (progressPhase_ + 1) % c_maxProgress;
                 lastProgress_ = now;
             }
         }
 
-        std::wstring NiceSize( __int64 size, int* length, bool noZero ) const
+        std::string ToMultiByte(const std::wstring& str)
         {
-            wchar_t str[ 100 ];
+            auto destSize = (str.length() * 2);
+            std::vector<char> dest(destSize, ' ');
+            auto numBytes = ::WideCharToMultiByte(CP_ACP, 0, str.c_str(), -1, &dest[0], (int)destSize, NULL, FALSE);
+            return &dest[0];
+        }
+
+        std::string NiceSize( __int64 size, int* length, bool noZero ) const
+        {
+            char str[ 100 ];
 
             if (size >= 0)
             {
                 size = ((size + add_) / div_);
                 if (size == 0 && noZero)
-                    return L"";
+                    return "";
 
-                _i64tow( size, str, 10 );
+                _i64toa( size, str, 10 );
 
                 int offset = 0;
                 __int64 temp = size;
@@ -261,10 +271,10 @@ namespace
                     temp /= 1000;
                 }
 
-                wchar_t* from = str;
+                char* from = str;
                 while (*from)
                     ++from;
-                wchar_t* to = (from + offset);
+                char* to = (from + offset);
 
                 int len = 0;
                 while (from > str)
@@ -272,29 +282,29 @@ namespace
                     *to-- = *from--;
                     if (++len >= 4)
                     {
-                        *to-- = L',';
+                        *to-- = ',';
                         len = 1;
                     }
                 }
 
                 if (units_ != nullptr)
-                    std::wcscat( str, units_ );
+                    std::strcat( str, units_ );
             }
             else
             {
-                str[ 0 ] = L'?';
-                str[ 1 ] = L'\x0';
+                str[ 0 ] = '?';
+                str[ 1 ] = '\x0';
             }
 
-            int len = (int)std::wcslen( str );
+            int len = (int)std::strlen( str );
             if (length != nullptr)
                 *length = len;
 
-            wchar_t ret[ 100 ];
-            wchar_t* p = ret;
+            char ret[ 100 ];
+            char* p = ret;
             for (int i = len; i < width_; ++i)
                 *p++ = ' ';
-            std::wcscpy( p, str );
+            std::strcpy( p, str );
             return ret;
         }
     };
@@ -385,7 +395,7 @@ int wmain( int argc, wchar_t* argv[] )
             || wcscmp( argv[ i ], L"-?" ) == 0
             || _wcsicmp( argv[ i ], L"--help" ) == 0)
         {
-            std::wcout << L"CYODISK [options...]\n" \
+            std::cout << "CYODISK [options...]\n" \
                 "\n" \
                 "Options:\n" \
                 "  /units        One of: BYTES, KB, KiB, MB, MiB (default), GB, GiB, TB, TiB.\n" \
